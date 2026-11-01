@@ -1,0 +1,275 @@
+{
+  "keywords": {
+    "type": "string",
+    "description": "关注什么（一行一个关键词）",
+    "default": "",
+    "hint": "一行一个关键词。留空 = 刷首页推荐流（像人一样随便逛，按你自己账号的画像推）"
+  },
+  "perDay": {
+    "type": "int",
+    "description": "每天最多挑几条",
+    "default": 5,
+    "hint": "填 0 = 不自动刷（还是能手动跑）"
+  },
+  "reportLevel": {
+    "type": "string",
+    "description": "日报写多详细",
+    "default": "full",
+    "options": [
+      "full",
+      "medium",
+      "span"
+    ],
+    "labels": [
+      "完整（标题/UP/为什么值得）",
+      "中等",
+      "薄版（一两行）"
+    ]
+  },
+  "personaPrompt": {
+    "type": "string",
+    "description": "它的人设与准则",
+    "default": "",
+    "hint": "写给这个AI看的人设：叫它什么、什么话不能说、哪些是红线。留空则用中性风格。"
+  },
+  "searchSort": {
+    "type": "string",
+    "description": "搜索排序方式",
+    "default": "pubdate",
+    "options": [
+      "pubdate",
+      "totalrank",
+      "click",
+      "dm"
+    ],
+    "labels": [
+      "最新发布",
+      "综合排序",
+      "播放量",
+      "弹幕数"
+    ]
+  },
+  "excludeWords": {
+    "type": "string",
+    "description": "排除词（一行一个）",
+    "default": "",
+    "hint": "标题里含这些词的视频直接跳过，不浪费 token。一行一个。"
+  },
+  "dmMode": {
+    "type": "string",
+    "description": "投递方式",
+    "default": "only",
+    "options": [
+      "only",
+      "off",
+      "both"
+    ],
+    "labels": [
+      "只发私信（最不打扰别人）",
+      "只发评论@你（公开可见）",
+      "私信+评论都发"
+    ]
+  },
+  "mentionName": {
+    "type": "string",
+    "description": "发给谁 / @ 谁（B站昵称）",
+    "default": "",
+    "hint": "填你自己的B站昵称。私信按它查UID，评论也@它。"
+  },
+  "autoComment": {
+    "type": "bool",
+    "description": "自动评论并 @ 你",
+    "default": false,
+    "hint": "开了之后会在挑中的视频下面留评论，并@上面那个人。警告：用你的账号公开发言。"
+  },
+  "commentPerRound": {
+    "type": "int",
+    "description": "每轮最多发几条评论",
+    "default": 1,
+    "hint": "每条评论里@一次上面那个人；填0=这一轮不发评论。范围0-20。"
+  },
+  "commentLength": {
+    "type": "string",
+    "description": "评论写多长",
+    "default": "medium",
+    "options": [
+      "short",
+      "medium",
+      "long"
+    ],
+    "labels": [
+      "短（≤15字）",
+      "中（≤40字）",
+      "长（≤100字）"
+    ]
+  },
+  "dmWatch": {
+    "type": "bool",
+    "description": "私信双向（有人私信它就回一句）",
+    "default": true,
+    "hint": "你在B站私信里跟它说话，它会回你（陌生人的私信不回）。查私信本身不花token。"
+  },
+  "transcribe": {
+    "type": "bool",
+    "description": "本地转写没字幕的视频",
+    "default": false,
+    "hint": "默认关。开了以后没字幕的视频会在本机转写（不花API钱，但需要装 faster-whisper + 模型约500MB）。"
+  },
+  "auto_on_link": {
+    "type": "bool",
+    "description": "收到B站链接自动分析",
+    "default": true,
+    "hint": "关掉后只能手动用 /看看 命令。"
+  },
+  "group_need_at": {
+    "type": "bool",
+    "description": "群里需要@才自动分析",
+    "default": true,
+    "hint": "开启后群里只有@它才接话，避免每个链接都刷屏。私聊不受影响。"
+  },
+  "push_target": {
+    "type": "string",
+    "description": "日报推送到哪个会话",
+    "default": "",
+    "hint": "例如 default:FriendMessage:2072611821，也可以直接填QQ号。留空会自动发给最近跟你私聊的会话。"
+  },
+  "push_group": {
+    "type": "string",
+    "description": "特别好的视频额外发到哪个群",
+    "default": "",
+    "hint": "填群号即可，例如 715274803。只有判为「值得看」的才会往这里发一条并@mentionName，其余只在私聊推。留空则完全不打扰群。"
+  },
+  "owner_comment_rate": {
+    "type": "float",
+    "default": 0.5,
+    "description": "评论区@你的概率（0~1）",
+    "hint": "每条挑中的视频有多大几率去评论区@你。1.0=每条都@，0.5=一半。太低会被B站判定刷屏，建议别超过0.6。"
+  },
+  "owner_bili_uid": {
+    "type": "string",
+    "description": "主人的B站UID",
+    "default": "",
+    "hint": "用于核对@对象和私信白名单，例如 699420827。"
+  },
+  "cron_hour": {
+    "type": "int",
+    "description": "每天几点自动刷",
+    "default": 9,
+    "options": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23
+    ],
+    "labels": [
+      "0点",
+      "1点",
+      "2点",
+      "3点",
+      "4点",
+      "5点",
+      "6点",
+      "7点",
+      "8点",
+      "9点",
+      "10点",
+      "11点",
+      "12点",
+      "13点",
+      "14点",
+      "15点",
+      "16点",
+      "17点",
+      "18点",
+      "19点",
+      "20点",
+      "21点",
+      "22点",
+      "23点"
+    ]
+  },
+  "llm_provider_id": {
+    "type": "string",
+    "description": "用于判断的模型ID",
+    "default": "",
+    "hint": "留空则用AstrBot当前默认提供商。"
+  },
+  "prompt_cache": {
+    "type": "bool",
+    "description": "尽量让中转站吃前缀缓存",
+    "default": true,
+    "hint": "把固定不变的判断章程放最前面、每条视频的信息放最后，让前缀逐字节一致，中转站才可能命中缓存。若你的中转站原本就不支持缓存，这个开关不会有副作用。"
+  },
+  "cache_probe": {
+    "type": "bool",
+    "description": "在日志里打印缓存命中情况",
+    "default": true,
+    "hint": "每次判断后写一行 [bili_scroll] LLM 缓存命中 N tok。用来判断你的中转站到底有没有吃缓存。"
+  },
+  "dm_allowed_uids": {
+    "type": "string",
+    "description": "私信白名单 UID（留空=自动用 mentionName 查到的那个）",
+    "default": "",
+    "hint": "只有这些UID的私信会回。多个用逗号隔开。留空则自动用上面 mentionName 对应的B站账号。"
+  },
+  "dm_poll_seconds": {
+    "type": "int",
+    "description": "私信轮询间隔（秒）",
+    "default": 60,
+    "hint": "多久查一次新私信。查私信不花token，只有真回复时才调模型。"
+  },
+  "dmPersona": {
+    "type": "text",
+    "description": "私信专用人设（留空=用下面的 personaPrompt）",
+    "default": "",
+    "hint": "私信里说话的样子。留空就沿用上面那个 personaPrompt。"
+  },
+  "notify_mode": {
+    "type": "string",
+    "default": "bili_at_only",
+    "options": [
+      "bili_at_only",
+      "both",
+      "qq_only"
+    ],
+    "labels": [
+      "只在B站@我（不发QQ）",
+      "B站@我 + QQ也发",
+      "只发QQ"
+    ],
+    "description": "刷完怎么通知你",
+    "hint": "bili_at_only = 挑中的视频到B站评论区@你，B站App会推送到手机；不会往QQ发消息。"
+  },
+  "bili_sessdata": {
+    "type": "string",
+    "default": "",
+    "description": "（旧版兼容，已废弃）SESSDATA",
+    "hint": "请用 /bili登录 扫码。此项仅用于迁移老配置，填了会自动写入凭证文件。"
+  },
+  "bili_bili_jct": {
+    "type": "string",
+    "default": "",
+    "description": "（旧版兼容，已废弃）bili_jct",
+    "hint": "请用 /bili登录 扫码。"
+  }
+}
