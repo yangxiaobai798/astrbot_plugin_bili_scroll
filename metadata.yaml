@@ -1,0 +1,18 @@
+name: astrbot_plugin_bili_scroll
+display_name: 刷B站
+short_desc: 丢个链接就告诉你这条视频值不值得看；也能每天自动刷B站挑好货，到B站@你
+desc: >-
+  把 B站 链接丢给它，它读字幕、看数据，判断这条值不值得花时间。
+  配好 Cookie 后还能每天自动刷 B 站，按关键词挑出值得看的，写成日报。
+  挑中的视频可以到评论区 @ 你、发 B站私信，或者推到 QQ——三种方式自选。
+version: 2.1.0
+author: yjz
+repo: ""
+tags:
+  - B站
+  - 视频
+  - 总结
+  - 日报
+  - 自动刷
+category: 娱乐
+astrbot_version: ">=4.29,<5"
