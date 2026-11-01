@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>刷B站 · 记录</title>
+    <style>
+        :root {
+            --fg: #1a1a1a; --muted: #6b7280; --bg: transparent; --card: #f9fafb;
+            --border: #e5e7eb; --accent: #3b82f6; --good: #22c55e; --bad: #ef4444;
+        }
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --fg: #e5e7eb; --muted: #9ca3af; --card: #171a21;
+                --border: #2a2f3a; --accent: #60a5fa; --good: #4ade80; --bad: #f87171;
+            }
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0; padding: 16px; background: var(--bg); color: var(--fg);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+            font-size: 14px; line-height: 1.6;
+        }
+        .wrap { max-width: 1000px; }
+        h1 { font-size: 19px; margin: 0 0 4px; }
+        .sub { color: var(--muted); font-size: 12px; margin-bottom: 16px; }
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 16px; }
+        .stat { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 10px 13px; }
+        .stat .k { font-size: 11px; color: var(--muted); }
+        .stat .v { font-size: 19px; font-weight: 600; margin-top: 2px; }
+        .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 14px; }
+        .tab {
+            padding: 8px 15px; cursor: pointer; border: none; background: none; color: var(--muted);
+            font-size: 13px; border-bottom: 2px solid transparent; font-family: inherit;
+        }
+        .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+        .panel { display: none; }
+        .panel.active { display: block; }
+        .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 13px; margin-bottom: 9px; }
+        .row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .grow { flex: 1; min-width: 0; }
+        .title { font-weight: 600; font-size: 13px; }
+        .meta { color: var(--muted); font-size: 11px; margin-top: 3px; }
+        .badge { display: inline-block; padding: 1px 7px; border-radius: 20px; font-size: 10px; border: 1px solid var(--border); }
+        .badge.picked { color: var(--good); border-color: var(--good); }
+        .badge.skipped { color: var(--muted); }
+        .btn {
+            padding: 7px 13px; border-radius: 8px; border: 1px solid var(--border);
+            background: var(--card); color: var(--fg); cursor: pointer; font-size: 12px; font-family: inherit;
+        }
+        .btn:hover { border-color: var(--accent); }
+        .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+        .btn:disabled { opacity: .5; cursor: default; }
+        .msg { font-size: 12px; padding: 10px 12px; border-radius: 8px; margin-bottom: 12px; display: none; }
+        .msg.show { display: block; }
+        .msg.ok { background: rgba(34,197,94,.12); color: var(--good); }
+        .msg.err { background: rgba(239,68,68,.12); color: var(--bad); }
+        .empty { color: var(--muted); text-align: center; padding: 36px 0; font-size: 13px; }
+        pre { white-space: pre-wrap; word-break: break-word; font-size: 12px; line-height: 1.7; margin: 0; }
+        .msg-line { padding: 6px 0; border-bottom: 1px solid var(--border); }
+        .msg-line:last-child { border-bottom: none; }
+        .role-user { color: var(--accent); font-size: 11px; font-weight: 600; }
+        .role-assistant { color: var(--good); font-size: 11px; font-weight: 600; }
+        .date-list { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+        .date-chip {
+            padding: 5px 11px; border-radius: 16px; border: 1px solid var(--border);
+            background: var(--card); cursor: pointer; font-size: 12px; color: var(--fg);
+        }
+        .date-chip.active { border-color: var(--accent); color: var(--accent); }
+        a { color: var(--accent); text-decoration: none; }
+        a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+<div class="wrap">
+    <h1>刷B站 · 记录</h1>
+    <div class="sub">看过的视频、它跟人聊过的话、每日日报</div>
+
+    <div id="msg" class="msg"></div>
+
+    <div class="stats">
+        <div class="stat"><div class="k">登录状态</div><div class="v" id="s-login">-</div></div>
+        <div class="stat"><div class="k">今日已挑</div><div class="v" id="s-picked">-</div></div>
+        <div class="stat"><div class="k">每天上限</div><div class="v" id="s-limit">-</div></div>
+        <div class="stat"><div class="k">看过总数</div><div class="v" id="s-ledger">-</div></div>
+    </div>
+
+    <!-- 账号绑定：对齐原版设置页里那块「扫码登录」 -->
+    <div class="card" id="login-card" style="margin-bottom:14px">
+        <div class="row">
+            <div class="grow">
+                <div class="title">B站账号</div>
+                <div class="meta" id="login-note">点右边按钮出二维码，手机B站扫一下就能读你的账号</div>
+            </div>
+            <button class="btn primary" id="btn-login">扫码登录</button>
+            <button class="btn" id="btn-logout" style="display:none">退出登录</button>
+        </div>
+        <div id="login-state" class="meta" style="margin-top:8px;display:none"></div>
+        <div id="qr-box" style="display:none;margin-top:10px">
+            <div style="display:flex;gap:14px;align-items:flex-start">
+                <img id="qr-img" alt="B站登录二维码" style="width:150px;height:150px;border-radius:8px;background:#fff;padding:6px">
+                <div class="meta">
+                    手机 B站 → 我的 → 扫一扫。<br>
+                    确认时选「记住我 / 长期」那张 —— 选 24 小时的话，明天就得重扫。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row" style="margin-bottom:14px">
+        <button class="btn primary" id="btn-run">立刻跑一轮</button>
+        <button class="btn" id="btn-refresh">刷新</button>
+        <span class="meta" id="s-last"></span>
+    </div>
+
+    <div class="tabs">
+        <button class="tab active" data-tab="history">浏览记录</button>
+        <button class="tab" data-tab="dialogs">对话记录</button>
+        <button class="tab" data-tab="reports">日报</button>
+    </div>
+
+    <div class="panel active" id="p-history"><div id="history-list"></div></div>
+    <div class="panel" id="p-dialogs"><div id="dialogs-list"></div></div>
+    <div class="panel" id="p-reports">
+        <div class="date-list" id="dates"></div>
+        <div class="card" id="report-body" style="display:none"><pre id="report-text"></pre></div>
+    </div>
+</div>
+
+<script>
+// AstrBot 的插件页面必须走 bridge，不能直接 fetch
+// ⚠️ 桥接脚本由服务端注入在页面末尾（也就是在本脚本之后），
+//    所以不能在顶层立即取值 —— 每次用时现取。
+//    （注意：这里绝不能写出那个脚本的路径字符串，服务端会把它当资源引用去替换）
+function getBridge() {
+    return window.AstrBotPluginPage || window.AstrBotPluginView || null;
+}
+
+function showMsg(text, ok) {
+    const el = document.getElementById('msg');
+    el.textContent = text;
+    el.className = 'msg show ' + (ok ? 'ok' : 'err');
+    setTimeout(() => { el.className = 'msg'; }, 6000);
+}
+
+async function apiGet(endpoint, params) {
+    const b = getBridge();
+    if (!b) throw new Error('bridge 不可用（页面没在 AstrBot 里打开？）');
+    return await b.apiGet(endpoint, params || {});
+}
+async function apiPost(endpoint, body) {
+    const b = getBridge();
+    if (!b) throw new Error('bridge 不可用（页面没在 AstrBot 里打开？）');
+    return await b.apiPost(endpoint, body || {});
+}
+
+async function loadStatus() {
+    try {
+        const d = await apiGet('status');
+        refreshLoginUI(d.loggedIn);
+        document.getElementById('s-picked').textContent = d.pickedToday;
+        document.getElementById('s-limit').textContent = d.perDay;
+        document.getElementById('s-ledger').textContent = d.ledgerCount;
+        document.getElementById('s-last').textContent = d.lastRunAt ? ('上次跑：' + d.lastRunAt) : '还没跑过';
+    } catch (e) {
+        showMsg('读取状态失败：' + e.message, false);
+    }
+}
+
+async function loadHistory() {
+    const box = document.getElementById('history-list');
+    box.innerHTML = '<div class="empty">加载中…</div>';
+    try {
+        const d = await apiGet('history');
+        if (!d.count) {
+            box.innerHTML = '<div class="empty">还没有浏览记录。跑一轮之后这里就会有。</div>';
+            return;
+        }
+        box.innerHTML = d.items.map(function(it) {
+            const picked = (it.status === '挑了');
+            return '<div class="card"><div class="row"><div class="grow">' +
+                '<div class="title">' + esc(it.title || it.bvid) + '</div>' +
+                '<div class="meta">' + it.bvid + ' · ' + esc(it.ts || '') +
+                (it.note ? ' · ' + esc(String(it.note).slice(0, 80)) : '') + '</div>' +
+                '</div>' +
+                '<span class="badge ' + (picked ? 'picked' : 'skipped') + '">' + esc(it.status || '') + '</span>' +
+                '<a href="https://www.bilibili.com/video/' + it.bvid + '" target="_blank" rel="noopener">打开</a>' +
+                '</div></div>';
+        }).join('');
+    } catch (e) {
+        box.innerHTML = '<div class="empty">读取失败：' + esc(e.message) + '</div>';
+    }
+}
+
+async function loadDialogs() {
+    const box = document.getElementById('dialogs-list');
+    box.innerHTML = '<div class="empty">加载中…</div>';
+    try {
+        const d = await apiGet('dialogs');
+        if (!d.ok) {
+            box.innerHTML = '<div class="empty">读取失败：' + esc(d.error || '') + '</div>';
+            return;
+        }
+        if (!d.count) {
+            box.innerHTML = '<div class="empty">还没有对话记录。</div>';
+            return;
+        }
+        box.innerHTML = d.items.map(function(c) {
+            const msgs = (c.messages || []).map(function(m) {
+                return '<div class="msg-line"><span class="' +
+                    (m.role === 'user' ? 'role-user' : 'role-assistant') + '">' +
+                    (m.role === 'user' ? '用户' : '机器人') + '</span><div>' + esc(m.text) + '</div></div>';
+            }).join('') || '<div class="meta">（没有文本消息）</div>';
+            return '<div class="card"><div class="title">' + esc(c.umo) + '</div>' +
+                '<div class="meta">' + esc(c.platform) + ' · ' + esc(c.updated || '') + '</div>' +
+                '<div style="margin-top:8px">' + msgs + '</div></div>';
+        }).join('');
+    } catch (e) {
+        box.innerHTML = '<div class="empty">读取失败：' + esc(e.message) + '</div>';
+    }
+}
+
+async function loadReports() {
+    const dates = document.getElementById('dates');
+    try {
+        const d = await apiGet('reports');
+        if (!d.items.length) {
+            dates.innerHTML = '<div class="empty" style="width:100%">还没有日报。跑一轮就会生成。</div>';
+            return;
+        }
+        dates.innerHTML = d.items.map(function(it) {
+            return '<button class="date-chip" data-date="' + it.date + '">' + it.date + '</button>';
+        }).join('');
+        const chips = dates.querySelectorAll('.date-chip');
+        chips.forEach(function(b) {
+            b.onclick = function() { openReport(b.dataset.date, b); };
+        });
+        if (d.items.length) openReport(d.items[0].date, chips[0]);
+    } catch (e) {
+        dates.innerHTML = '<div class="empty">读取失败：' + esc(e.message) + '</div>';
+    }
+}
+
+async function openReport(date, btn) {
+    document.querySelectorAll('.date-chip').forEach(function(x) { x.classList.remove('active'); });
+    if (btn) btn.classList.add('active');
+    try {
+        const d = await apiGet('report', { date: date });
+        document.getElementById('report-body').style.display = 'block';
+        document.getElementById('report-text').textContent = d.content || '';
+    } catch (e) {
+        showMsg('读取日报失败：' + e.message, false);
+    }
+}
+
+function esc(s) {
+    const d = document.createElement('div');
+    d.textContent = (s == null ? '' : String(s));
+    return d.innerHTML;
+}
+
+document.querySelectorAll('.tab').forEach(function(t) {
+    t.onclick = function() {
+        document.querySelectorAll('.tab').forEach(function(x) { x.classList.remove('active'); });
+        document.querySelectorAll('.panel').forEach(function(x) { x.classList.remove('active'); });
+        t.classList.add('active');
+        document.getElementById('p-' + t.dataset.tab).classList.add('active');
+    };
+});
+
+document.getElementById('btn-run').onclick = async function(e) {
+    const btn = e.target;
+    btn.disabled = true;
+    btn.textContent = '跑着…';
+    try {
+        const d = await apiPost('run');
+        const r = d.result || {};
+        if (r.error) {
+            showMsg('跑失败：' + r.error, false);
+        } else {
+            const st = r.stats || {};
+            showMsg('跑完了：看了 ' + (st.inspected || 0) + ' 条，挑中 ' + (st.picked || 0) + ' 条', true);
+        }
+        await loadStatus();
+        await loadHistory();
+        await loadReports();
+    } catch (err) {
+        showMsg('跑失败：' + err.message, false);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = '立刻跑一轮';
+    }
+};
+
+document.getElementById('btn-refresh').onclick = function() {
+    loadStatus(); loadHistory(); loadDialogs(); loadReports();
+};
+
+// ── 扫码登录（对齐原版：点一下出码 → 2秒轮询 → 成功自动刷新）──
+let loginTimer = null;
+let loginTries = 0;
+
+function setLoginState(msg, tone) {
+    const el = document.getElementById('login-state');
+    if (!msg) { el.style.display = 'none'; return; }
+    el.style.display = 'block';
+    el.textContent = msg;
+    el.style.color = tone === 'good' ? 'var(--good)' : tone === 'warn' ? 'var(--warn)' : 'var(--muted)';
+}
+
+function stopLoginTimer() {
+    if (loginTimer) { clearInterval(loginTimer); loginTimer = null; }
+}
+
+async function onLoginStart() {
+    const btn = document.getElementById('btn-login');
+    btn.disabled = true;
+    stopLoginTimer();
+    setLoginState('正在出码…', '');
+    document.getElementById('qr-box').style.display = 'none';
+    try {
+        const r = await apiPost('login/start');
+        if (r && r.already) {
+            setLoginState('已经登录过了', 'good');
+            refreshLoginUI(true);
+            return;
+        }
+        if (!r || !r.ok) {
+            setLoginState((r && r.error) || '出码失败', 'warn');
+            return;
+        }
+        if (!r.qr) {
+            setLoginState('没画出二维码（qrcode 依赖缺失）', 'warn');
+            return;
+        }
+        document.getElementById('qr-img').src = r.qr;
+        document.getElementById('qr-box').style.display = 'block';
+        setLoginState('用手机 B站 扫这张码', '');
+
+        loginTries = 0;
+        loginTimer = setInterval(async function() {
+            loginTries += 1;
+            try {
+                const p = await apiPost('login/poll');
+                const st = p && p.state;
+                if (st === 'ok') {
+                    stopLoginTimer();
+                    document.getElementById('qr-box').style.display = 'none';
+                    setLoginState('登录成功', 'good');
+                    refreshLoginUI(true);
+                    loadStatus();
+                    return;
+                }
+                if (st === 'scanned') { setLoginState('扫到了，请在手机上确认', ''); }
+                else if (st === 'expired') {
+                    stopLoginTimer();
+                    document.getElementById('qr-box').style.display = 'none';
+                    setLoginState('二维码过期了，再点一次「扫码登录」', 'warn');
+                } else if (st === 'unknown') {
+                    stopLoginTimer();
+                    document.getElementById('qr-box').style.display = 'none';
+                    setLoginState('没登上：' + ((p && p.message) || '再点一次「扫码登录」'), 'warn');
+                }
+            } catch (e) { /* 网络抖动就下次再问 */ }
+            if (loginTries > 90) {
+                stopLoginTimer();
+                document.getElementById('qr-box').style.display = 'none';
+                setLoginState('超时了，再点一次「扫码登录」', 'warn');
+            }
+        }, 2000);
+    } catch (e) {
+        setLoginState('出码失败：' + e.message, 'warn');
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+function refreshLoginUI(loggedIn) {
+    document.getElementById('s-login').textContent = loggedIn ? '已登录' : '未登录';
+    document.getElementById('s-login').style.color = loggedIn ? 'var(--good)' : 'var(--bad)';
+    document.getElementById('btn-login').textContent = loggedIn ? '重新扫码' : '扫码登录';
+    document.getElementById('btn-logout').style.display = loggedIn ? 'inline-block' : 'none';
+    document.getElementById('login-note').textContent = loggedIn
+        ? '已绑定B站账号，能读字幕/弹幕/评论/推荐流'
+        : '点右边按钮出二维码，手机B站扫一下就能读你的账号';
+}
+
+document.getElementById('btn-login').onclick = onLoginStart;
+
+document.getElementById('btn-logout').onclick = async function() {
+    if (!confirm('确定退出B站登录？退出后读不了字幕。')) return;
+    try {
+        await apiPost('logout');
+        setLoginState('已退出登录', '');
+        refreshLoginUI(false);
+    } catch (e) {
+        setLoginState('退出失败：' + e.message, 'warn');
+    }
+};
+
+// 等桥接脚本加载就绪再初始化
+function whenBridgeReady(cb) {
+    let tries = 0;
+    const t = setInterval(function() {
+        tries += 1;
+        const b = getBridge();
+        if (b) {
+            clearInterval(t);
+            cb(b);
+            return;
+        }
+        if (tries > 100) {   // 10 秒还没来，就当没桥
+            clearInterval(t);
+            showMsg('页面桥接没加载出来，可能不是从 AstrBot 面板打开的', false);
+        }
+    }, 100);
+}
+
+whenBridgeReady(async function(b) {
+    if (b.ready) {
+        try { await b.ready(); } catch (e) {}
+    }
+    loadStatus();
+    loadHistory();
+    loadDialogs();
+    loadReports();
+});
+</script>
+</body>
+</html>
